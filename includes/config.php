@@ -4,6 +4,7 @@ ini_set('display_errors',0);
    //hellp moto
    // ovo je drugi kommentar
    // treci komentar
+   //cetvrti komentar
 $CONF = $TMPL = array();
 $CONF['host'] = 'mysql462.loopia.se';
 $CONF['user'] = 'qrd@m18694';
