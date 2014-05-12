@@ -3,6 +3,7 @@ ini_set('display_errors',0);
    include './hybridauth/config.php';
    //hellp moto
    // ovo je drugi kommentar
+   // treci komentar
 $CONF = $TMPL = array();
 $CONF['host'] = 'mysql462.loopia.se';
 $CONF['user'] = 'qrd@m18694';
