@@ -460,6 +460,26 @@ function doLike(id, type) {
 		}
 	});
 }
+function doLikePhoto(id, type) {
+	// id = unique id of the message
+	// type = 1 do the like, 2 do the dislike
+	//$('#like_btn'+id).html('<div class="privacy_loader"></div>');
+	//$('#doLike'+id).removeAttr('onclick');
+
+	$.ajax({
+		type: "POST",
+		url: "requests/likephoto.php",
+		data: "id="+id+"&type="+type, 
+		cache: false,
+		success: function(data) {
+			var obj = jQuery.parseJSON(data);
+			$('#album_photo'+id).find('.dolike').html(obj.dolike);
+			$('#album_photo'+id).find('.likebtn').html(obj.likebtn);
+			// $('#message-action'+id).empty();
+			// $('#message-action'+id).html(html);
+		}
+	});
+}
 function doBlock(id, type) {
 	// id = unique id of the message
 	// type 0: do nothing, just display the block, type 1: do/undo block
