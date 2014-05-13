@@ -35,4 +35,6 @@ $action = array('admin'			=> 'admin',
 				'login-social'   => 'login-social',
 				'choose-username'   => 'choose-username'
 				);
+
+// mijat
 ?>
