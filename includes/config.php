@@ -8,8 +8,22 @@ $CONF['user'] = 'root';
 $CONF['pass'] = '';
 $CONF['name'] = 'facebookkiller';
 //$CONF['url'] = 'http://localhost/fbOriginal';
-$CONF['url'] = 'http://fb.kill';
-$CONF['email'] = 'stefan.stex@yahoo.com';
+
+$whitelist = array(
+    '127.0.0.1',
+    '::1'
+);
+if(in_array($_SERVER['REMOTE_ADDR'], $whitelist)){
+	// localhost
+    $CONF['url'] = 'http://localhost/fbGit';
+}else{
+	$CONF['url'] = 'http://qrd.mijatovicivan.com';
+}
+
+$CONF['email'] = 'ivanmijatovic89@gmail.com';
+
+
+
 $CONF['theme_path'] = 'themes';
 $action = array('admin'			=> 'admin',
 				'feed'			=> 'feed',
@@ -25,4 +39,6 @@ $action = array('admin'			=> 'admin',
 				'login-social'   => 'login-social',
 				'choose-username'   => 'choose-username'
 				);
+
+// mijat je faca
 ?>
