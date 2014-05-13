@@ -35,5 +35,5 @@ $action = array('admin'			=> 'admin',
 				'choose-username'   => 'choose-username'
 				);
 
-// mijat
+// mijat je faca
 ?>
