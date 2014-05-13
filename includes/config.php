@@ -15,6 +15,7 @@ if(in_array($_SERVER['REMOTE_ADDR'], $whitelist)){
 	// localhost
     $CONF['url'] = 'http://localhost/fbGit';
 }else{
+	//server
 	$CONF['url'] = 'http://qrd.mijatovicivan.com';
 }
 
