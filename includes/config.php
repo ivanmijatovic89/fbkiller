@@ -8,7 +8,17 @@ $CONF['user'] = 'qrd@m18694';
 $CONF['pass'] = 'm18694@qrd';
 $CONF['name'] = 'mijatovicivan_com_db_4';
 //$CONF['url'] = 'http://localhost/fbOriginal';
-$CONF['url'] = 'http://qrd.mijatovicivan.com';
+$whitelist = array(
+    '127.0.0.1',
+    '::1'
+);
+if(in_array($_SERVER['REMOTE_ADDR'], $whitelist)){
+	// localhost
+    $CONF['url'] = 'http://localhost/fbkiller';
+}else{
+	$CONF['url'] = 'http://qrd.mijatovicivan.com';
+}
+
 $CONF['email'] = 'ivanmijatovic89@gmail.com';
 $CONF['theme_path'] = 'themes';
 $action = array('admin'			=> 'admin',
