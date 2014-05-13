@@ -1,5 +1,4 @@
 <?php
-// Stefabne
 ini_set('display_errors',0);
    include './hybridauth/config.php';
 $CONF = $TMPL = array();
