@@ -13,7 +13,7 @@ $whitelist = array(
 );
 if(in_array($_SERVER['REMOTE_ADDR'], $whitelist)){
 	// localhost
-    $CONF['url'] = 'http://localhost/fbkiller';
+    $CONF['url'] = 'http://localhost/fbGit';
 }else{
 	$CONF['url'] = 'http://qrd.mijatovicivan.com';
 }
