@@ -8,7 +8,7 @@ $CONF['user'] = 'root';
 $CONF['pass'] = '';
 $CONF['name'] = 'facebookkiller';
 //$CONF['url'] = 'http://localhost/fbOriginal';
-$CONF['url'] = 'http://fb.kill';
+$CONF['url'] = 'http://fb.killer';
 $CONF['email'] = 'stefan.stex@yahoo.com';
 $CONF['theme_path'] = 'themes';
 $action = array('admin'			=> 'admin',

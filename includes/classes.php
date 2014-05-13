@@ -2363,10 +2363,19 @@ class feed {
 				$album_photos = $this->get_album_photos($parent_id);
 
 				while ($row = $album_photos->fetch_array()) {
+					//IF PHOTO LIKED SET TYPE TO 2, ELSE SET TYPE TO 1
+					if($this->verifyLikePhoto($row[4])){
+						$like_type = 2;
+						$like_str = "unlike";
+					}else{
+						$like_type = 1;
+						$like_str = "like";
+					}
 					if($i == 0){
 						$result .= '<tr>';
 					}
 					$result .= '<td>';
+					$result .= '<div id="album_photo'.$row[4].'">';					
 					$result .= '<a onclick="gallery(\''.$row[0].'\', '.$id.', \'media\')" id="'.$row[0].'">';
 						$result .= '<div class="image-thumbnail-container">'; 
 							$result .='<div class="image-thumbnail">';
@@ -2377,8 +2386,30 @@ class feed {
 					$result .= '</a>';
 					if(!empty($row[2])){
 						$result .= '<span>In '.$row[2].'</span>';
-					}								
-					$result .= '<span class="like_btn"> '.$row[3].'</span>';
+					}		
+
+					//PEOPLE WHO LIKED PHOTO
+					if($this->l_per_post) {
+						$query2 = sprintf("SELECT * FROM `likes_photo`,`users` WHERE `post` = '%s' and `likes_photo`.`by` = `users`.`idu` ORDER BY `likes_photo`.`id` DESC LIMIT %s", $this->db->real_escape_string($row[4]), $this->db->real_escape_string($this->l_per_post));
+						$array = array();
+						$result2 = $this->db->query($query2);
+						while($row3 = $result2->fetch_assoc()) {
+							$array[] = $row3;
+						}
+						
+						// Define the $people who liked variable
+						$people = '';
+						foreach($array as $row2) {
+							$people .= '<a href="'.$this->url.'/index.php?a=profile&u='.$row2['username'].'"><img src="'.$this->url.'/thumb.php?src='.$row2['image'].'&w=25&h=25&t=a" title="'.realName($row2['username'], $row2['first_name'], $row2['last_name']).' '.$LNG['liked_this'].'" /></a> ';
+						}
+					}
+
+					if(!empty($row[3])){
+						$result .= '<div class="likebtn"><span class="like_btn"> '.$people.$row[3].'</span></div>';
+					}else{
+						$result .= '<div class="likebtn"><span class="like_btn"> '.$row[3].'</span></div>';
+					}
+
 					if(!empty($row[1])){
 						$tags = unserialize($row[1]);
 						$result .= '<br/>';
@@ -2386,7 +2417,11 @@ class feed {
 							$result .= '<a href="index.php?a=profile&u='.$user.'">'.$user.'</a><br/>';
 						}
 					}
-					$result .= '<a onclick="doLike2('.$row[4].', 1)" id="doLike288" style="float:right;">Like</a>';
+					$result .= '<div class="dolike"><a onclick="doLikePhoto('.$row[4].', '.$like_type.')" id="doLikePhoto'.$row[4].'" style="float:right;">'.$like_str.'</a></div>';
+					
+					$result .= '<div style="width:100%,float:left;clear:both;">Comment</div>';
+
+					$result .= '</div>';
 					$result .= '</td>';
 
 					$i++;
@@ -3607,7 +3642,115 @@ class feed {
 		}
 		return array($array, $total = $result->num_rows);
 	}
+	function verifyLikePhoto($id){
+		$result = $this->db->query(sprintf("SELECT * FROM `likes_photo` WHERE `post` = '%s' AND `by` = '%s'", $this->db->real_escape_string($id), $this->db->real_escape_string($this->id)));
 	
+		// If the Message/Comment exists
+		return ($result->num_rows) ? 1 : 0;
+	}
+	function doLikePhoto($id, $type = null){
+		global $LNG;
+
+		if($type == 1) {
+			$verify = $this->verifyLikePhoto($id);
+
+			if(!$verify){
+				// Prepare the INSERT statement
+				$stmt = $this->db->prepare("INSERT INTO `likes_photo` (`post`, `by`) VALUES ('{$this->db->real_escape_string($id)}', '{$this->db->real_escape_string($this->id)}')");
+
+				// Execute the statement
+				$stmt->execute();
+				
+				// Save the affected rows
+				$affected = $stmt->affected_rows;
+
+				// Close the statement
+				$stmt->close();
+				if($affected) {
+					$this->db->query("UPDATE `album_photos` SET `likes` = `likes` + 1 WHERE id = '{$this->db->real_escape_string($id)}'");
+				}
+			}
+		}else if($type == 2){
+			// Verify the Like state
+			$verify = $this->verifyLikePhoto($id);
+
+			if($verify) {
+				// Prepare the DELETE statement
+				$stmt = $this->db->prepare("DELETE FROM `likes_photo` WHERE `post` = '{$this->db->real_escape_string($id)}' AND `by` = '{$this->db->real_escape_string($this->id)}'");
+
+				// Execute the statement
+				$stmt->execute();
+				
+				// Save the affected rows
+				$affected = $stmt->affected_rows;
+
+				// Close the statement
+				$stmt->close();
+				if($affected) {
+					$this->db->query("UPDATE `album_photos` SET `likes` = `likes` - 1 WHERE id = '{$this->db->real_escape_string($id)}'");					
+				}
+			}
+			
+		}
+
+		// If likes is not defined
+		//if($likes == null) {
+			// Get the likes
+			$query = sprintf("SELECT `likes` FROM `album_photos` WHERE `id` = '%s'", $this->db->real_escape_string($id));
+			
+			// Run the query
+			$result = $this->db->query($query);
+			
+			// Get the array element for the like
+			$get = $result->fetch_row();
+			
+			// Set the likes value
+			$likes = $get[0];
+		//}
+		
+		// Verify the Like state
+		$verify = $this->verifyLikePhoto($id);
+		
+		if($verify) {
+			//$state = $LNG['dislike'];
+			$state = 'unlike';
+			$y = 2;
+		} else {
+			$state = $LNG['like'];
+			$y = 1;
+		}
+
+		if($this->l_per_post) {
+			$query = sprintf("SELECT * FROM `likes_photo`,`users` WHERE `post` = '%s' and `likes_photo`.`by` = `users`.`idu` ORDER BY `likes_photo`.`id` DESC LIMIT %s", $this->db->real_escape_string($id), $this->db->real_escape_string($this->l_per_post));
+		
+			$result = $this->db->query($query);
+			while($row = $result->fetch_assoc()) {
+				$array[] = $row;
+			}
+			
+			// Define the $people who liked variable
+			$people = '';
+			foreach($array as $row) {
+				$people .= '<a href="'.$this->url.'/index.php?a=profile&u='.$row['username'].'"><img src="'.$this->url.'/thumb.php?src='.$row['image'].'&w=25&h=25&t=a" title="'.realName($row['username'], $row['first_name'], $row['last_name']).' '.$LNG['liked_this'].'" /></a> ';
+			}
+		}
+
+		// Output variable
+		$action = array();
+
+		$actions['dolike'] = '<a onclick="doLikePhoto('.$id.', '.$y.')" id="doLike'.$id.'" style="float:right;">'.$state.'</a>';
+		$actions['likebtn'] = '<div class="like_btn" id="like_btn'.$id.'"> '.$people.$likes.'</div>';
+		
+		// If the current user is not empty
+		// if(empty($this->id)) {
+		// 	// Output variable
+		// 	$actions = '<a href="'.$this->url.'">'.$LNG['login_to_lcs'].'</a> <div class="like_btn"> '.$people.$likes.'</div>';
+		// }
+		// if(isset($x)) {
+		// 	return $LNG["$x"].' <div class="like_btn"> '.$likes.'</div>';
+		// }
+		return json_encode($actions);
+	}
 	function getActions($id, $likes = null, $type = null) {
 		global $LNG;
 
