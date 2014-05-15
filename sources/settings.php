@@ -1,39 +1,34 @@
 <?php
- 
-
- 
-
- 
 function PageMain() {
 	global $TMPL, $LNG, $CONF, $db, $loggedIn, $settings;
-	
-	if(isset($_SESSION['username']) && isset($_SESSION['password']) || isset($_COOKIE['username']) && isset($_COOKIE['password'])) {	
+
+	if(isset($_SESSION['username']) && isset($_SESSION['password']) || isset($_COOKIE['username']) && isset($_COOKIE['password'])) {
 		$verify = $loggedIn->verify();
-		
+
 		if($verify['username']) {
-			
+
 			$TMPL_old = $TMPL; $TMPL = array();
 			$TMPL['url'] = $CONF['url'];
 			if($_GET['b'] == 'security') {
 				$skin = new skin('settings/security'); $page = '';
-				
+
 				// Create the class instance
 				$updateUserSettings = new updateUserSettings();
 				$updateUserSettings->db = $db;
 				$updateUserSettings->id = $verify['idu'];
-				
-				if(!empty($_POST)) {	
+
+				if(!empty($_POST)) {
 					// Unset the verified value if exist, by unsetting it here and not in the class, I'm allowing the Admin to change this value
 					unset($_POST['verified']);
 					$TMPL['message'] = $updateUserSettings->query_array('users', $_POST);
 				}
-				
+
 				$userSettings = $updateUserSettings->getSettings();
-				
+
 				$page .= $skin->make();
 			} elseif($_GET['b'] == 'deactivate') {
 
-				
+
 				// SELEKTUJEM USER-a
 				$query = sprintf("SELECT * FROM `users` WHERE `username` = '%s' AND `password` = '%s'", $db->real_escape_string($loggedIn->username), $db->real_escape_string($loggedIn->password));
 				$result = $db->query($query);
@@ -41,7 +36,7 @@ function PageMain() {
 
 				// uzme id od user-a
 				$idu = $row['idu'];
-				
+
 				// ovo je da upishe u deactivate tabelu
 				$query2 = move_user($row,'users_deactivated');
 				$result2 = $db->query($query2);
@@ -56,15 +51,15 @@ function PageMain() {
 				setcookie("password", '', 1);
 					// ovo je da izbaci logovanje preko facebook-a
 				Hybrid_Auth::logoutAllProviders();
-				
+
 				//redirektujem ga na stranicu gde moze da aktivira nalog i neku poruku mu jos izbacim
 				header("Location: ".$CONF['url']."/index.php?a=welcome&acc=deactivated");
-				//echo "deactivate"; 
-				
+				//echo "deactivate";
+
 
 			} elseif($_GET['b'] == 'avatar') {
 				$skin = new skin('settings/avatar'); $page = '';
-				
+
 				// Create the class instance
 				$updateUserSettings = new updateUserSettings();
 				$updateUserSettings->db = $db;
@@ -74,7 +69,7 @@ function PageMain() {
 				$TMPL['bck'] = '<img src="'.$CONF['url'].'/uploads/bck/'.$verify['bck'].'" />';
 				// ovo dole odkomentarisi ako hoces da slika bude manja
 				// $TMPL['bck'] = '<img src="'.$CONF['url'].'/thumb.php?src='.$verify['bck'].'&t=b&w=900&h=200" />';
-				
+
 				$maxsize = $settings['size'];
 
 				if(isset($_FILES['avatarselect']['name'])) {
@@ -82,7 +77,7 @@ function PageMain() {
 					$ext = pathinfo($_FILES['avatarselect']['name'][$key], PATHINFO_EXTENSION);
 					$size = $_FILES['avatarselect']['size'][$key];
 					$extArray = explode(',', $settings['format']);
-					
+
 					// Get the image size
 					list($width, $height) = getimagesize($_FILES['avatarselect']['tmp_name'][0]);
 					$ratio = ($width / $height);
@@ -94,7 +89,7 @@ function PageMain() {
 							$size = $_FILES['avatarselect']['size'][$key];
 							$type = pathinfo($_FILES['avatarselect']['name'][$key], PATHINFO_EXTENSION);
 							$finalName = mt_rand().'_'.mt_rand().'_'.mt_rand().'.'.$db->real_escape_string($ext);
-							
+
 							// Move the file into the uploaded folder
 							move_uploaded_file($tmp_name, 'uploads/avatars/'.$finalName);
 
@@ -103,30 +98,30 @@ function PageMain() {
 							$updateUserSettings->query_array('users', $image);
 
 							// $bck = array('bck'=>'baclgrpadsfa');
-							// $updateUserSettings->query_array('users', $bck);													
+							// $updateUserSettings->query_array('users', $bck);
 
-							
+
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=s");
-						} elseif($_FILES['avatarselect']['name'][$key] == '') { 
+						} elseif($_FILES['avatarselect']['name'][$key] == '') {
 							//Daca nu este selectata nici o fila.
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=nf");
-						} elseif($size > $maxsize || $size == 0) { 
+						} elseif($size > $maxsize || $size == 0) {
 							//Daca fila are dimensiunea mai mare decat dimensiunea admisa, sau egala cu 0.
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=fs");
-						} else { 
+						} else {
 							//Daca formatul filei nu este un format admis.
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=wf");
 						}
 					}
 				}
-     
+
 
      			if(isset($_FILES['bck']['name'])) {
 					foreach ($_FILES['bck']['error'] as $key => $error) {
 					$ext = pathinfo($_FILES['bck']['name'][$key], PATHINFO_EXTENSION);
 					$size = $_FILES['bck']['size'][$key];
 					$extArray = explode(',', $settings['format']);
-					
+
 					// Get the image size
 					list($width, $height) = getimagesize($_FILES['bck']['tmp_name'][0]);
 					$ratio = ($width / $height);
@@ -138,7 +133,7 @@ function PageMain() {
 							$size = $_FILES['bck']['size'][$key];
 							$type = pathinfo($_FILES['bck']['name'][$key], PATHINFO_EXTENSION);
 							$finalName = mt_rand().'_'.mt_rand().'_'.mt_rand().'.'.$db->real_escape_string($ext);
-							
+
 							// Move the file into the uploaded folder
 							move_uploaded_file($tmp_name, 'uploads/bck/'.$finalName);
 
@@ -146,18 +141,18 @@ function PageMain() {
 							$image = array('bck' => $finalName);
 							$updateUserSettings->query_array('users', $image);
 
-							// $bck = array('bck'=>'baclgrpadsfa'); 
-							// $updateUserSettings->query_array('users', $bck);													
+							// $bck = array('bck'=>'baclgrpadsfa');
+							// $updateUserSettings->query_array('users', $bck);
 
-							
+
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=s");
-						} elseif($_FILES['bck']['name'][$key] == '') { 
+						} elseif($_FILES['bck']['name'][$key] == '') {
 							//Daca nu este selectata nici o fila.
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=nf");
-						} elseif($size > $maxsize || $size == 0) { 
+						} elseif($size > $maxsize || $size == 0) {
 							//Daca fila are dimensiunea mai mare decat dimensiunea admisa, sau egala cu 0.
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=fs");
-						} else { 
+						} else {
 							//Daca formatul filei nu este un format admis.
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=wf");
 						}
@@ -170,7 +165,7 @@ function PageMain() {
 					$ext = pathinfo($_FILES['coverselect']['name'][$key], PATHINFO_EXTENSION);
 					$size = $_FILES['coverselect']['size'][$key];
 					$extArray = explode(',', $settings['format']);
-					
+
 					// Get the image size
 					list($width, $height) = getimagesize($_FILES['coverselect']['tmp_name'][0]);
 					$ratio = ($width / $height);
@@ -182,7 +177,7 @@ function PageMain() {
 							$size = $_FILES['coverselect']['size'][$key];
 							$type = pathinfo($_FILES['coverselect']['name'][$key], PATHINFO_EXTENSION);
 							$finalName = mt_rand().'_'.mt_rand().'_'.mt_rand().'.'.$db->real_escape_string($ext);
-							
+
 							// Move the file into the uploaded folder
 							move_uploaded_file($tmp_name, 'uploads/covers/'.$finalName);
 
@@ -190,16 +185,16 @@ function PageMain() {
 							$image = array('cover' => $finalName);
 							$updateUserSettings->query_array('users', $image);
 
-						
-							
+
+
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=s");
-						} elseif($_FILES['coverselect']['name'][$key] == '') { 
+						} elseif($_FILES['coverselect']['name'][$key] == '') {
 							//Daca nu este selectata nici o fila.
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=nf");
-						} elseif($size > $maxsize || $size == 0) { 
+						} elseif($size > $maxsize || $size == 0) {
 							//Daca fila are dimensiunea mai mare decat dimensiunea admisa, sau egala cu 0.
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=fs");
-						} else { 
+						} else {
 							//Daca formatul filei nu este un format admis.
 							header("Location: ".$CONF['url']."/index.php?a=settings&b=avatar&m=wf");
 						}
@@ -220,96 +215,97 @@ function PageMain() {
 				$page .= $skin->make();
 			} elseif($_GET['b'] == 'notifications') {
 				$skin = new skin('settings/notifications'); $page = '';
-				
+
 				// Create the class instance
 				$updateUserSettings = new updateUserSettings();
 				$updateUserSettings->db = $db;
 				$updateUserSettings->id = $verify['idu'];
-				
+
 				if(!empty($_POST)) {
 					// Unset the verified value if exist, by unsetting it here and not in the class, I'm allowing the Admin to change this value
 					unset($_POST['verified']);
 					$TMPL['message'] = $updateUserSettings->query_array('users', array_map("strip_tags_array", $_POST));
 				}
-				
+
 				$userSettings = $updateUserSettings->getSettings();
-				
+
 				if($userSettings['notificationl'] == '0') {
 					$TMPL['loff'] = 'selected="selected"';
 				} else {
 					$TMPL['lon'] = 'selected="selected"';
 				}
-				
+
 				if($userSettings['notificationc'] == '0') {
 					$TMPL['coff'] = 'selected="selected"';
 				} else {
 					$TMPL['con'] = 'selected="selected"';
 				}
-				
+
 				if($userSettings['notifications'] == '0') {
 					$TMPL['soff'] = 'selected="selected"';
 				} else {
 					$TMPL['son'] = 'selected="selected"';
 				}
-				
+
 				if($userSettings['notificationd'] == '0') {
 					$TMPL['doff'] = 'selected="selected"';
 				} else {
 					$TMPL['don'] = 'selected="selected"';
 				}
-				
+
 				if($userSettings['notificationf'] == '0') {
 					$TMPL['foff'] = 'selected="selected"';
 				} else {
 					$TMPL['fon'] = 'selected="selected"';
 				}
-				
+
 				if($userSettings['email_comment'] == '0') {
 					$TMPL['ecoff'] = 'selected="selected"';
 				} else {
 					$TMPL['econ'] = 'selected="selected"';
 				}
-				
+
 				if($userSettings['email_like'] == '0') {
 					$TMPL['eloff'] = 'selected="selected"';
 				} else {
 					$TMPL['elon'] = 'selected="selected"';
 				}
-				
+
 				if($userSettings['email_new_friend'] == '0') {
 					$TMPL['enfoff'] = 'selected="selected"';
 				} else {
 					$TMPL['enfon'] = 'selected="selected"';
 				}
-				
+
 				$page .= $skin->make();
 			} else {
 				$skin = new skin('settings/general'); $page = '';
-				
+
 				// Create the class instance
 				$updateUserSettings = new updateUserSettings();
 				$updateUserSettings->db = $db;
 				$updateUserSettings->id = $verify['idu'];
-				
+
 				if(!empty($_POST)) {
 					// Unset the verified value if exist, by unsetting it here and not in the class, I'm allowing the Admin to change this value
 					unset($_POST['verified']);
 					$TMPL['message'] = $updateUserSettings->query_array('users', array_map("strip_tags_array", $_POST));
 				}
-				
+
 				$userSettings = $updateUserSettings->getSettings();
-				
+
 				$date = explode('-', $userSettings['born']);
-				
+
 				$TMPL['years']  = generateDateForm(0, $date[0]);
 				$TMPL['months'] = generateDateForm(1, $date[1]);
 				$TMPL['days']   = generateDateForm(2, $date[2]);
 
-				
-				$TMPL['currentFirstName'] = $userSettings['first_name']; $TMPL['currentLastName'] = $userSettings['last_name']; $TMPL['currentEmail'] = $userSettings['email']; $TMPL['currentLocation'] = $userSettings['location']; $TMPL['currentWebsite'] = $userSettings['website']; $TMPL['currentBio'] = $userSettings['bio']; $TMPL['currentFacebook'] = $userSettings['facebook'];$TMPL['currentLinkedin'] = $userSettings['linkedin']; $TMPL['currentTwitter'] = $userSettings['twitter'];  
+				$TMPL['currentUsername'] = $userSettings['username'];
+				$TMPL['currentFirstName'] = $userSettings['first_name']; $TMPL['currentLastName'] = $userSettings['last_name']; $TMPL['currentEmail'] = $userSettings['email']; $TMPL['currentLocation'] = $userSettings['location']; $TMPL['currentWebsite'] = $userSettings['website']; $TMPL['currentBio'] = $userSettings['bio']; $TMPL['currentFacebook'] = $userSettings['facebook'];$TMPL['currentLinkedin'] = $userSettings['linkedin']; $TMPL['currentTwitter'] = $userSettings['twitter'];
 				$TMPL['currentGplus'] = $userSettings['gplus'];
 				$TMPL['currentFitness'] = $userSettings['fitness'];
-				
+
+
 
 				$TMPL['currentProfession'] = $userSettings['profession'];
 				$TMPL['currentEmployer_name'] = $userSettings['employer_name'];
@@ -326,19 +322,19 @@ function PageMain() {
 				} else {
 					$TMPL['off'] = 'selected="selected"';
 				}
-				
+
 				if($userSettings['privacy'] == '0') {
 					$TMPL['pon'] = 'selected="selected"';
 				} else {
 					$TMPL['poff'] = 'selected="selected"';
 				}
-				
+
 				if($userSettings['offline'] == '1') {
 					$TMPL['con'] = 'selected="selected"';
 				} else {
 					$TMPL['coff'] = 'selected="selected"';
 				}
-				
+
 				if($userSettings['gender'] == '0') {
 					$TMPL['ngender'] = 'selected="selected"';
 				} elseif($userSettings['gender'] == '1') {
@@ -346,13 +342,13 @@ function PageMain() {
 				} else {
 					$TMPL['fgender'] = 'selected="selected"';
 				}
-				
+
 				$page .= $skin->make();
 			}
-		
+
 			$TMPL = $TMPL_old; unset($TMPL_old);
 			$TMPL['settings'] = $page;
-			
+
 		} else {
 			// If fake cookies are set, or they are set wrong, delete everything and redirect to home-page
 			$loggedIn->logOut();
@@ -362,8 +358,8 @@ function PageMain() {
 		// If the session or cookies are not set, redirect to home-page
 		header("Location: ".$CONF['url']."/index.php?a=welcome");
 	}
-	
-	
+
+
 	// Bold the current link
 	if(isset($_GET['b'])) {
 		$LNG["user_menu_{$_GET['b']}"] = '<strong>'.$LNG["user_menu_{$_GET['b']}"].'</strong>';
@@ -372,17 +368,17 @@ function PageMain() {
 		$LNG["user_menu_general"] = '<strong>'.$LNG["user_menu_general"].'</strong>';
 		$TMPL['welcome'] = '<strong>'.$LNG["user_ttl_general"].'</strong>';
 	}
-	
+
 	$TMPL['user_menu'] = '
-	<a href="'.$CONF['url'].'/index.php?a=settings">'.$LNG['user_menu_general'].'</a> 
+	<a href="'.$CONF['url'].'/index.php?a=settings">'.$LNG['user_menu_general'].'</a>
 	<a href="'.$CONF['url'].'/index.php?a=settings&b=avatar">'.$LNG['user_menu_avatar'].'</a>
 	<a href="'.$CONF['url'].'/index.php?a=settings&b=notifications">'.$LNG['user_menu_notifications'].'</a>
 	<a href="'.$CONF['url'].'/index.php?a=settings&b=security"> Deactivate acc / '.$LNG['user_menu_security'].'</a>';
-	
-	$TMPL['image'] = '<img src="'.$CONF['url'].'/thumb.php?src='.$verify['image'].'&t=a" width="80" height="80" />';	
-				
+
+	$TMPL['image'] = '<img src="'.$CONF['url'].'/thumb.php?src='.$verify['image'].'&t=a" width="80" height="80" />';
+
 	$TMPL['title'] = $LNG['title_settings'].' - '.$settings['title'];
-	
+
 	$skin = new skin('settings/content');
 	return $skin->make();
 }

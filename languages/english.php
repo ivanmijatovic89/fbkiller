@@ -27,6 +27,7 @@ $LNG['register'] = 'Register';
 $LNG['login'] = 'Login';
 $LNG['password'] = 'Password';
 $LNG['username'] = 'Username';
+$LNG['enter_username'] = 'Enter new Username';
 $LNG['email'] = 'Email';
 $LNG['born'] = 'Born';
 $LNG['username_or_email'] = 'Username or email';

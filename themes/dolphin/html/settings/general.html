@@ -3,7 +3,18 @@
 <div class="message-divider"></div>
 <div class="page-inner">
 	<form action="{$url}/index.php?a=settings" method="post">
-	
+
+	<div class="page-input-container">
+		<div class="page-input-title">{$lng->username}</div>
+		<div class="page-input-content">
+			<input type="text" name="username" value="{$currentUsername}" />
+			<div class="page-input-sub">{$lng->enter_username}</div>
+		</div>
+	</div>
+
+
+
+
 	<div class="page-input-container">
 		<div class="page-input-title">{$lng->ttl_first_name}</div>
 		<div class="page-input-content">
@@ -11,7 +22,7 @@
 			<div class="page-input-sub">{$lng->sub_first_name}</div>
 		</div>
 	</div>
-	
+
 	<div class="page-input-container">
 		<div class="page-input-title">{$lng->ttl_last_name}</div>
 		<div class="page-input-content">
@@ -27,7 +38,7 @@
 			<div class="page-input-sub">{$lng->sub_email}</div>
 		</div>
 	</div>
-	
+
 	<div class="page-input-container">
 	<div class="page-input-title">{$lng->ttl_born}</div>
 		<div class="page-input-content">
@@ -43,7 +54,7 @@
 		<div class="page-input-sub">{$lng->sub_born}</div>
 		</div>
 	</div>
-	
+
 	<div class="page-input-container">
 		<div class="page-input-title">{$lng->ttl_gender}</div>
 		<div class="page-input-content">
@@ -74,7 +85,7 @@
 </div>
 <div class="message-divider"></div>
 
-<div class="page-inner">	
+<div class="page-inner">
 	<div class="page-input-container">
 		<div class="page-input-title">{$lng->ttl_profession}</div>
 		<div class="page-input-content">
@@ -119,7 +130,7 @@
 		Izaberi aktivnosti !!!!
 	</div>
 
-	
+
 </div>
 
 <div class="message-divider"></div>
@@ -136,7 +147,7 @@
 		<div class="page-input-sub">{$lng->sub_profile}</div>
 		</div>
 	</div>
-	
+
 	<div class="page-input-container">
 		<div class="page-input-title">{$lng->ttl_messages}</div>
 		<div class="page-input-content">
@@ -147,7 +158,7 @@
 		<div class="page-input-sub">{$lng->sub_messages}</div>
 		</div>
 	</div>
-	
+
 	<div class="page-input-container">
 		<div class="page-input-title">{$lng->ttl_offline}</div>
 		<div class="page-input-content">
@@ -170,7 +181,7 @@
 	</div>
 
 	<div class="page-input-container">
-		<div class="page-input-title">{$lng->ttl_linkedin}</div> 
+		<div class="page-input-title">{$lng->ttl_linkedin}</div>
 		<div class="page-input-content">
 			<input type="text" name="linkedin" value="{$currentLinkedin}" />
 			<div class="page-input-sub">{$lng->sub_linkedin}</div>
@@ -178,7 +189,7 @@
 	</div>
 
 	<div class="page-input-container">
-		<div class="page-input-title">{$lng->ttl_fitness}</div> 
+		<div class="page-input-title">{$lng->ttl_fitness}</div>
 		<div class="page-input-content">
 			<input type="text" name="fitness" value="{$currentFitness}" />
 			<div class="page-input-sub">{$lng->sub_fitness}</div>
