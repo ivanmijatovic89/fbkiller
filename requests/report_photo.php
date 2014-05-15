@@ -9,13 +9,7 @@ if ($db->connect_errno) {
 }
 $db->set_charset("utf8");
 
-$resultSettings = $db->query(getSettings()); 
-$settings = $resultSettings->fetch_assoc();
-
-// The theme complete url
-$CONF['theme_url'] = $CONF['theme_path'].'/'.$settings['theme'];
-
-if(!empty($_POST['id']) && !empty($_POST['start']) && !empty($_POST['cid'])) {
+if(isset($_POST['id']) && isset($_POST['type'])) {
 	if(isset($_SESSION['username']) && isset($_SESSION['password']) || isset($_COOKIE['username']) && isset($_COOKIE['password'])) {
 		$loggedIn = new loggedIn();
 		$loggedIn->db = $db;
@@ -24,20 +18,18 @@ if(!empty($_POST['id']) && !empty($_POST['start']) && !empty($_POST['cid'])) {
 		$loggedIn->password = (isset($_SESSION['password'])) ? $_SESSION['password'] : $_COOKIE['password'];
 		
 		$verify = $loggedIn->verify();
+
+		if($verify['username']) {
+			$feed = new feed();
+			$feed->db = $db;
+			$feed->url = $CONF['url'];
+			$feed->username = $verify['username'];
+			$feed->id = $verify['idu'];
+			
+			$result = $feed->report_photo($_POST['id'], $_POST['type']);
+			echo $result;
+
+		}
 	}
-	$feed = new feed();
-	$feed->db = $db;
-	$feed->url = $CONF['url'];
-	$feed->censor = $settings['censor'];
-	$feed->smiles = $settings['smiles'];
-	$feed->time = $settings['time'];
-	// Verify if it's logged in, then send the username to the class property to determine if any buttons is shown
-	if($verify['username']) {
-		$feed->username = $verify['username'];
-	}
-	$feed->c_per_page = $settings['cperpage'];
-	$feed->l_per_post = $settings['lperpost'];
-	$feed->id = $verify['idu'];
-	echo $feed->getComments($_POST['id'], $_POST['cid'], $_POST['start']);
 }
 ?>

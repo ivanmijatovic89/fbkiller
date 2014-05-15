@@ -85,10 +85,27 @@ function PageMain() {
 				$manageReports->db = $db;
 				$manageReports->url = $CONF['url'];
 				$manageReports->per_page = $settings['rperpage'];
+
+				//get the admin username
+				$TMPL['a'] = $_GET['a'];
 				
 				// Save the array returned into a list
 				$TMPL['reports'] = $manageReports->getReports(0);
 				
+			} elseif($_GET['b'] == 'manage_reports_photo') {
+				$skin = new skin('admin/manage_reports_photo'); $page = '';
+
+				$manageReports = new manageReports();
+				$manageReports->db = $db;
+				$manageReports->url = $CONF['url'];
+				$manageReports->per_page = $settings['rperpage'];
+
+				//get the admin username
+				$TMPL['a'] = $_GET['a'];
+				
+				// Save the array returned into a list
+				$TMPL['reports'] = $manageReports->getReportsPhoto(0);
+
 			} elseif($_GET['b'] == 'users_settings') {
 				$skin = new skin('admin/users_settings'); $page = '';
 					

@@ -12,28 +12,30 @@ $whitelist = array(
     '::1'
 );
 if(in_array($_SERVER['REMOTE_ADDR'], $whitelist)){
-// localhost
-    $CONF['url'] = 'http://localhost/fbGit';
+	// localhost
+    $CONF['url'] = 'http://fb.kill';
+
 }else{
-$CONF['url'] = 'http://qrd.mijatovicivan.com';
-}
+	$CONF['url'] = 'http://qrd.mijatovicivan.com';
+} 
 
 $CONF['email'] = 'ivanmijatovic89@gmail.com';
 $CONF['theme_path'] = 'themes';
-$action = array('admin'	=> 'admin',
-'feed'	=> 'feed',
-'settings'	=> 'settings',
-'messages'	=> 'messages',
-'post'	=> 'post',
-'recover'	=> 'recover',
-'timeline'	=> 'timeline',
-'profile'	=> 'profile',
-'notifications'	=> 'notifications',
-'search'	=> 'search',
-'page'	=> 'page',
-'login-social' => 'login-social',
-'choose-username' => 'choose-username'
-);
 
-// mijat je faca
+$action = array('admin'			=> 'admin',
+				'feed'			=> 'feed',
+				'settings'		=> 'settings',
+				'messages'		=> 'messages',
+				'post'			=> 'post',
+				'recover'		=> 'recover',
+				'timeline'		=> 'timeline',
+				'profile'		=> 'profile',
+				'notifications'	=> 'notifications',
+				'search'		=> 'search',
+				'page'			=> 'page',
+				'login-social'   => 'login-social',
+				'choose-username'   => 'choose-username',
+				'album_photo'   => 'album_photo'
+				);
 ?>
+ 
