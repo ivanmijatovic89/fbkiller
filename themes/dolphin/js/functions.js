@@ -9,6 +9,9 @@ function autosize() {
 function showButton(id) {
 	$('#comment_btn_'+id).fadeIn('slow');
 }
+function showButtonPic(id){
+	$('#comment_btn_pic'+id).fadeIn('slow');
+}
 function loadChat(uid, username, block, cid, start) {
 	if(!cid) {
 		$('.message-loader').show();
@@ -58,6 +61,25 @@ function loadComments(id, cid, start) {
 			
 			// Append the new comment to the div id
 			$('#comments-list'+id).prepend(html);
+		
+			// Reload the timeago plugin
+			jQuery("div.timeago").timeago();
+		}
+	});
+}
+function loadCommentsPhoto(id, cid, start) {
+	$('#more_comments_pic'+id).html('<div class="preloader-retina preloader-center"></div>');
+	$.ajax({
+		type: "POST",
+		url: "requests/load_comments_photo.php",
+		data: "id="+id+"&start="+start+"&cid="+cid, 
+		cache: false,
+		success: function(html) {
+			// Remove the loader animation
+			$('#more_comments_pic'+id).remove();
+			
+			// Append the new comment to the div id
+			$('#comments-list-pic'+id).prepend(html);
 		
 			// Reload the timeago plugin
 			jQuery("div.timeago").timeago();
@@ -240,6 +262,37 @@ function postComment(id) {
 		}
 	});
 }
+function postCommentPicture(id) {
+	var comment = $('#comment-form-pic'+id).val();
+	
+	$('#post_comment_pic'+id).html('<div class="preloader-retina-large preloader-center"></div>');
+	
+	// Remove the post button
+	$('#comment_btn_pic'+id).fadeOut('slow');
+	
+	$.ajax({
+		type: "POST",
+		url: "requests/post_comment_picture.php",
+		data: "id="+id+"&comment="+encodeURIComponent(comment), 
+		cache: false,
+		success: function(html) {
+			// Remove the loader animation
+			$('#post_comment_pic'+id).html('');
+			
+			// Append the new comment to the div id
+			$('#comments-list-pic'+id).append(html);
+			
+			// Fade In the style="display: none" class
+			$('.message-reply-container').fadeIn(500);
+			
+			// Reload the timeago plugin
+			jQuery("div.timeago").timeago();
+			
+			// Empty the text area
+			$('#comment-form-pic'+id).val('');
+		}
+	});
+}
 function share(id) {
 	$('#share').show('slow');
 	
@@ -307,6 +360,24 @@ function delete_the(id, type) {
 		}
 	});
 }
+function delete_the_comment_photo(id){
+	$('#del_comment_pic'+id).html('<div class="preloader-retina"></div>');
+
+	$.ajax({
+		type: "POST",
+		url: "requests/delete_comment_photo.php",
+		data: "id="+id, 
+		cache: false,
+		success: function(html) {
+			if(html == '1') {
+				$('#comment_photo'+id).fadeOut(500, function() { $('#comment_photo'+id).remove(); });
+			} else {
+				$('#comment_photo'+id).html($('#del_comment_pic'+id).html('Sorry, the comment could not be removed, please refresh the page and try again.'));
+			}
+		}
+	});
+}
+
 function report_the(id, type) {
 	// id = unique id of the message/comment
 	// type = type of post: message/comment
@@ -331,10 +402,37 @@ function report_the(id, type) {
 		}
 	});
 }
+
+function report_the_photo(id, type){
+	// id = unique id of the photo/photo comment
+	// type = type of post: photo/photo comment
+	
+	if(type == 0) {
+		$('#comment_photo'+id).html('<div class="message-reported"><div class="preloader-retina"></div></div>');
+	} if(type == 1) {
+		$('#photo_report'+id).html('<div class="message-reported"><div class="preloader-retina-large preloader-center"></div></div>');
+	}
+
+	$.ajax({
+		type: "POST",
+		url: "requests/report_photo.php",
+		data: "id="+id+"&type="+type, 
+		cache: false,
+		success: function(html) {
+			if(type == 0) {
+				$('#comment_photo'+id).html('<div class="message-reported">'+html+'</div>');
+			} if(type == 1) {
+				$('#photo_report'+id).html('<div class="message-content"><div class="message-inner">'+html+'</div></div>');
+			}
+		}
+	});	
+}
+
 function subscribe(id, type, z) {
 	// id = unique id of the viewed profile
 	// type = if is set, is an insert/delete type
 	// z if on, activate the sublist class which sets another margin (friends dedicated profile page)
+	//add_friend - 0 is follow, 1 is add friend
 	
 	if(z == 1) {
 		$('#subscribe'+id).html('<div class="sub-loading subslist"></div>');
@@ -351,6 +449,7 @@ function subscribe(id, type, z) {
 		}
 	});
 }
+
 function deleteNotification(type, id) {
 	if(type == 0) {
 		$('#notification'+id).fadeOut(500, function() { $('#notification'+id).remove(); });
@@ -444,6 +543,23 @@ function manage_report(id, type, post, kind) {
 		}
 	});
 }
+function manage_report_photo(id, type, post, kind) {
+	$('#report_photo'+id).html('<div class="preloader-retina"></div>');
+	
+	$.ajax({
+		type: "POST",
+		url: "requests/manage_reports_photo.php",
+		data: "id="+id+"&type="+type+"&post="+post+"&kind="+kind, 
+		cache: false,
+		success: function(html) {
+			if(html == '1') {
+				$('#report_photo'+id).fadeOut(500, function() {  });
+			} else {
+				$('#report_photo'+id).html('Sorry, but something went wrong, please refresh the page and try again.');
+			}
+		}
+	});
+}
 function doLike(id, type) {
 	// id = unique id of the message
 	// type = 1 do the like, 2 do the dislike
@@ -463,8 +579,8 @@ function doLike(id, type) {
 function doLikePhoto(id, type) {
 	// id = unique id of the message
 	// type = 1 do the like, 2 do the dislike
-	//$('#like_btn'+id).html('<div class="privacy_loader"></div>');
-	//$('#doLike'+id).removeAttr('onclick');
+	$('#like_btn_pic'+id).html('<div class="privacy_loader"></div>');
+	$('#doLikePhoto'+id).removeAttr('onclick');
 
 	$.ajax({
 		type: "POST",
@@ -475,8 +591,42 @@ function doLikePhoto(id, type) {
 			var obj = jQuery.parseJSON(data);
 			$('#album_photo'+id).find('.dolike').html(obj.dolike);
 			$('#album_photo'+id).find('.likebtn').html(obj.likebtn);
-			// $('#message-action'+id).empty();
-			// $('#message-action'+id).html(html);
+		}
+	});
+}
+function doLikeComment(id, type){
+	// id = unique id of the comment
+	// type = 1 do the like, 2 do the dislike
+	$('#like_btn_comm'+id).html('<div class="privacy_loader"></div>');
+	$('#doLikeComment'+id).removeAttr('onclick');
+
+	$.ajax({
+		type: "POST",
+		url: "requests/likecomment.php",
+		data: "id="+id+"&type="+type, 
+		cache: false,
+		success: function(data) {
+			var obj = jQuery.parseJSON(data);
+			$('#comment'+id).find('.dolike').html(obj.dolike);
+			$('#comment'+id).find('.likebtn').html(obj.likebtn);
+		}
+	});
+}
+function doLikeCommentPhoto(id, type){
+	// id = unique id of the comment
+	// type = 1 do the like, 2 do the dislike
+	$('#like_btn_comm_pic'+id).html('<div class="privacy_loader"></div>');
+	$('#doLikeCommentPhoto'+id).removeAttr('onclick');
+
+	$.ajax({
+		type: "POST",
+		url: "requests/likecommentphoto.php",
+		data: "id="+id+"&type="+type, 
+		cache: false,
+		success: function(data) {
+			var obj = jQuery.parseJSON(data);
+			$('#comment_photo'+id).find('.dolikepic').html(obj.dolike);
+			$('#comment_photo'+id).find('.likebtnpic').html(obj.likebtn);
 		}
 	});
 }
@@ -962,4 +1112,22 @@ function getNext(currentId, direction, uid) {
 		$('#gallery-prev').attr('onclick', 'getNext(\''+next.attr('id')+'\', 1, '+uid+')');
 	}
 	resizeGallery();
+}
+function accept_friend(id, this_id, type){
+	//type 1 - accept
+	//type 2 - remove from friend
+	//this_id - id of looged in user
+
+	//$(".request_"+id+"_"+this_id).hide();
+
+	$.ajax({
+		type: "POST",
+		url: "requests/accept_friend.php",
+		data: 'id='+id, // start is not used in this particular case, only needs to be set
+		cache: false,
+		success: function(html) {
+			alert(html);
+			//$(".search-container").html(html).show();
+		}
+	});
 }

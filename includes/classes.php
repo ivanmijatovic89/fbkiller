@@ -1135,6 +1135,64 @@ class manageReports {
 		// Return the array set
 		return $users;
 	}
+
+	function getReportsPhoto($start) {
+		global $LNG;
+		// If the $start value is 0, empty the query;
+		if($start == 0) {
+			$start = '';
+		} else {
+			// Else, build up the query
+			$start = 'AND `id` < \''.$this->db->real_escape_string($start).'\'';
+		}
+		// Query the database and get the latest 20 users
+		// If load more is true, switch the query for the live query
+
+		$query = sprintf("SELECT * FROM `reports_photo`,`users` WHERE `reports_photo`.`by` = `users`.`idu` AND `state` = 0 %s ORDER BY `reports_photo`.`id` DESC LIMIT %s", $start, $this->db->real_escape_string($this->per_page + 1));
+		
+		$result = $this->db->query($query);
+		
+		while($row = $result->fetch_assoc()) {
+			$rows[] = $row;
+		}
+		
+		// if(array_key_exists($this->per_page, $rows)) {
+		// 	$loadmore = 1;
+			
+		// 	// Unset the last array element because it's not needed, it's used only to predict if the Load More Messages should be displayed
+		// 	array_pop($rows);
+		// }
+		
+		$users = '';	// Define the rows variable
+		
+		foreach($rows as $row) {
+			if($row['type'] == 0) {
+				$post = $row['parent'].'#comment_photo'.$row['post'];
+				$type = 'Comment';
+			} else {
+				$post = $row['post'];
+				$type = 'Photo';
+			}
+			$users .= '
+			<div class="admin-rows" id="report_photo'.$row['id'].'">
+				<div class="table-report-id columns">'.$row['id'].'</div>
+				<div class="table-report-message columns"><a href="'.$this->url.'/index.php?a=album_photo&ap='.$post.'">View the report</a></div>
+				<div class="table-report-type columns">'.$type.'</div>
+				<div class="table-user columns"><img src="'.$this->url.'/thumb.php?src='.$row['image'].'&t=a&w=50&h=50" /><a href="'.$this->url.'/index.php?a=profile&u='.$row['username'].'" target="_blank">'.$row['username'].'</a></div>
+				<div class="table-report-safe columns"><a onclick="manage_report_photo('.$row['id'].', '.$row['type'].', '.$row['post'].', 0)" title="'.$LNG['admin_reports_ttl_safe'].'">'.$LNG['admin_reports_safe'].'</a></div>
+				<div class="table-report-safe columns"><a onclick="manage_report_photo('.$row['id'].', '.$row['type'].', '.$row['post'].', 1)" title="'.$LNG['admin_reports_delete'].'">'.$LNG['admin_reports_delete'].'</a></div>
+			</div>';
+			$last = $row['id'];
+		}
+		// if($loadmore) {
+		// 	$users .= '<div class="admin-load-more"><div class="message-container" id="more_reports">
+		// 			<div class="load_more"><a onclick="manage_the('.$last.', 1)">'.$LNG['view_more_messages'].'</a></div>
+		// 		</div></div>';
+		// }
+		
+		// Return the array set
+		return $users;
+	}
 	
 	function manageReport($id, $type, $post, $kind) {
 		if($kind == 1) {
@@ -1165,6 +1223,56 @@ class manageReports {
 		} else {
 			// Make the report safe
 			$stmt = $this->db->prepare("UPDATE `reports` SET `state` = '1' WHERE `post` = '{$this->db->real_escape_string($post)}' AND `type` = '{$this->db->real_escape_string($type)}'");
+			
+			// Execute the statement
+			$stmt->execute();
+			
+			// Save the affected rows
+			$affected = $stmt->affected_rows;
+			
+			// Close the statement
+			$stmt->close();
+			
+			// If the row has been affected
+			return ($affected) ? 1 : 0;
+		}
+	}
+
+	function manageReportPhoto($id, $type, $post, $kind) {
+		if($kind == 1) {
+			// Prepare the statement to delete the message/comment from the database
+			if($type == 1) {
+				// Get the current type (for images deletion)
+				$query = $this->db->query(sprintf("SELECT `value` FROM `album_photos` WHERE `id` = '%s'", $this->db->real_escape_string($post)));
+				$row = $query->fetch_assoc();
+				
+				// Execute the deletePhotos function
+				deletePhotos('picture', $row['value']);
+			
+				$stmt = $this->db->prepare("DELETE FROM `album_photos` WHERE `id` = '{$this->db->real_escape_string($post)}'");
+
+				// Delete album photo comments
+				$stmt2 = $this->db->prepare("DELETE FROM `comments_photo` WHERE `apid` = '{$this->db->real_escape_string($post)}'");
+				$stmt2->execute();
+				$stmt2->close();
+
+			} else {
+				$stmt = $this->db->prepare("DELETE FROM `comments_photo` WHERE `id` = '{$this->db->real_escape_string($post)}'");
+			}
+			// Execute the statement
+			$stmt->execute();
+			
+			// Save the affected rows
+			$affected = $stmt->affected_rows;
+			
+			// Close the statement
+			$stmt->close();
+			
+			$this->db->query("UPDATE `reports_photo` SET `state` = '2' WHERE `post` = '{$this->db->real_escape_string($post)}' AND `type` = '{$this->db->real_escape_string($type)}'");
+			return 1;
+		} else {
+			// Make the report safe
+			$stmt = $this->db->prepare("UPDATE `reports_photo` SET `state` = '1' WHERE `post` = '{$this->db->real_escape_string($post)}' AND `type` = '{$this->db->real_escape_string($type)}'");
 			
 			// Execute the statement
 			$stmt->execute();
@@ -1923,7 +2031,16 @@ class feed {
 				} elseif($value['event'] == 'shared') {
 					$events .= '<div class="notification-image"><img class="notifications" src='.$this->url.'/thumb.php?src='.$value['image'].'&t=a&w=50&h=50" /></div><div class="notification-text">'.sprintf($LNG['new_shared_notification'], $this->url.'/index.php?a=profile&u='.$value['username'], realName($value['username'], $value['first_name'], $value['last_name']), $this->url.'/index.php?a=post&m='.$value['child']).'.<br /><img src="'.$this->url.'/'.$CONF['theme_url'].'/images/icons/shared_n.png" width="17" height="17" /><span class="timeago'.$b.'" title="'.$time.'">'.$time.'</span></div>';
 				} elseif($value['event'] == 'friend') {
-					$events .= '<div class="notification-image"><img class="notifications" src='.$this->url.'/thumb.php?src='.$value['image'].'&t=a&w=50&h=50" /></div><div class="notification-text">'.sprintf($LNG['new_friend_notification'], $this->url.'/index.php?a=profile&u='.$value['username'], realName($value['username'], $value['first_name'], $value['last_name'])).'.<br /><img src="'.$this->url.'/'.$CONF['theme_url'].'/images/icons/friendships_n.png" width="17" height="17" /><span class="timeago'.$b.'" title="'.$time.'">'.$time.'</span></div>';
+					$verify_friend_request = $this->verifyFriendRequest($value['idu']);
+
+					if($verify_friend_request){
+						$accept_str = 'Remove';
+						$accept_type = 0;
+					}else{
+						$accept_str = 'Accept';
+						$accept_type = 1;
+					}
+					$events .= '<div class="notification-image"><img class="notifications" src='.$this->url.'/thumb.php?src='.$value['image'].'&t=a&w=50&h=50" /></div><div class="notification-text">'.sprintf($LNG['new_friend_notification'], $this->url.'/index.php?a=profile&u='.$value['username'], realName($value['username'], $value['first_name'], $value['last_name'])).'.<br /><img src="'.$this->url.'/'.$CONF['theme_url'].'/images/icons/friendships_n.png" width="17" height="17" /><span class="timeago'.$b.'" title="'.$time.'">'.$time.'</span><span class="request_'.$value['idu'].'_'.$this->id.'"><a href="javascript:void(0)" style="float:right;" onclick="accept_friend('.$value['idu'].', '.$this->id.', '.$accept_type.');">'.$accept_str.'</a></span></div>';
 				} elseif($value['event'] == 'chat') {
 					$events .= '<div class="notification-image"><img class="notifications" src='.$this->url.'/thumb.php?src='.$value['image'].'&t=a&w=50&h=50" /></div><div class="notification-text">'.sprintf($LNG['new_chat_notification'], $this->url.'/index.php?a=profile&u='.$value['username'], realName($value['username'], $value['first_name'], $value['last_name']), $this->url.'/index.php?a=messages&u='.$value['username'].'&id='.$value['idu']).'.<br /><span class="chat-snippet">'.$this->parseMessage(substr($value['message'], 0, 45)).'...</span><br /><img src="'.$this->url.'/'.$CONF['theme_url'].'/images/icons/chat_n.png" width="17" height="17" /><span class="timeago'.$b.'" title="'.$time.'">'.$time.'</span></div>';
 				}
@@ -1959,7 +2076,7 @@ class feed {
 		}
 	}
 	
-	function getSubscribe($type = null, $list = null, $z = null) {
+	function getSubscribe($type = null, $list = null, $z = null, $add_friend = null) {
 		global $LNG;
 		// Type 0: Just show the button
 		// Type 1: Go trough the add friend query
@@ -2017,7 +2134,9 @@ class feed {
 					$result = $this->db->query(sprintf("DELETE FROM `relations` WHERE `subscriber` = '%s' AND `leader` = '%s'", $this->db->real_escape_string($this->id), $this->db->real_escape_string($profile['idu'])));
 					$insertNotification = $this->db->query(sprintf("DELETE FROM `notifications` WHERE `from` = '%s' AND `to` = '%s' AND `type` = '4'", $this->db->real_escape_string($this->id), $profile['idu']));
 				} else {
-					$result = $this->db->query(sprintf("INSERT INTO `relations` (`subscriber`, `leader`, `time`) VALUES ('%s', '%s', CURRENT_TIMESTAMP)", $this->db->real_escape_string($this->id), $this->db->real_escape_string($profile['idu'])));
+					//Insert only if approve
+					//$result = $this->db->query(sprintf("INSERT INTO `relations` (`subscriber`, `leader`, `time`) VALUES ('%s', '%s', CURRENT_TIMESTAMP)", $this->db->real_escape_string($this->id), $this->db->real_escape_string($profile['idu'])));
+
 					$insertNotification = $this->db->query(sprintf("INSERT INTO `notifications` (`from`, `to`, `type`, `read`) VALUES ('%s', '%s', '4', '0')", $this->db->real_escape_string($this->id), $profile['idu']));
 					
 					if($this->email_new_friend) {
@@ -2040,6 +2159,32 @@ class feed {
 			return '<div class="subscribe_btn unsubscribe'.$style.'" title="'.$LNG['remove_friend'].'" onclick="subscribe('.$profile['idu'].', 1'.(($z == 1) ? ', 1' : '').')"></div>';
 		} else {
 			return '<div class="subscribe_btn'.$style.'" title="'.$LNG['add_friend'].'" onclick="subscribe('.$profile['idu'].', 1'.(($z == 1) ? ', 1' : '').')"></div>';
+		}
+	}
+
+	function acceptFriendRequest($uid){
+		//Only if not accepted
+		$verify = $this->verifyFriendRequest($uid);
+
+		if(!$verify){
+			$this->db->query(sprintf("INSERT INTO `accepted_relations` (`subscriber`, `leader`, `time`) VALUES ('%s', '%s', CURRENT_TIMESTAMP)", $this->db->real_escape_string($this->id), $this->db->real_escape_string($uid)));
+			
+			$this->db->query(sprintf("INSERT INTO `relations` (`subscriber`, `leader`, `time`) VALUES ('%s', '%s', CURRENT_TIMESTAMP)", $this->db->real_escape_string($this->id), $this->db->real_escape_string($uid)));
+			$this->db->query(sprintf("INSERT INTO `relations` (`subscriber`, `leader`, `time`) VALUES ('%s', '%s', CURRENT_TIMESTAMP)", $this->db->real_escape_string($uid), $this->db->real_escape_string($this->id)));
+
+			return 1;
+		}else{
+			return 0;
+		}
+	}
+
+	function verifyFriendRequest($uid){
+		$result = $this->db->query(sprintf("SELECT * FROM `accepted_relations` WHERE `subscriber` = '%s' AND `leader` = '%s'", $this->db->real_escape_string($this->id), $this->db->real_escape_string($uid)));
+	
+		if($result->num_rows) {
+			return 1;
+		} else {
+			return 0;
 		}
 	}
 	
@@ -2119,6 +2264,100 @@ class feed {
 		$message = $this->getMessages($query, $start, '', '');
 		return $message[0];
 	}
+
+	function getAlbumPhoto($id) {
+		// Override any settings and grant admin permissions
+		if($this->is_admin) {
+			
+			$result .= '<div class="message-type-image"><div class="image-container-padding">';
+				$result .= '<table>';
+
+				$album_photo = $this->get_album_photo($id);
+
+				$row = $album_photo->fetch_row();
+
+
+				//IF PHOTO LIKED SET TYPE TO 2, ELSE SET TYPE TO 1
+				if($this->verifyLikePhoto($row[4])){
+					$like_type = 2;
+					$like_str = "unlike";
+				}else{
+					$like_type = 1;
+					$like_str = "like";
+				}
+
+				$result .= '<tr>';
+				
+				$result .= '<td valign="top">';
+				$result .= '<div id="album_photo'.$row[4].'">';					
+				$result .= '<a onclick="gallery(\''.$row[0].'\', '.$id.', \'media\')" id="'.$row[0].'">';
+					$result .= '<div class="image-thumbnail-container">'; 
+						$result .='<div class="image-thumbnail">';
+							$result .= '<img src="'.$this->url.'/thumb.php?src='.$row[0].'&w=300&h=300&t=m">'; 
+							
+						$result .='</div>'; 														
+					$result .='</div>';
+				$result .= '</a>';
+				if(!empty($row[2])){
+					$result .= '<span>In '.$row[2].'</span>';
+				}		
+
+				//PEOPLE WHO LIKED PHOTO
+				if($this->l_per_post) {
+					$query2 = sprintf("SELECT * FROM `likes_photo`,`users` WHERE `post` = '%s' and `likes_photo`.`by` = `users`.`idu` ORDER BY `likes_photo`.`id` DESC LIMIT %s", $this->db->real_escape_string($row[4]), $this->db->real_escape_string($this->l_per_post));
+					$array = array();
+					$result2 = $this->db->query($query2);
+					while($row3 = $result2->fetch_assoc()) {
+						$array[] = $row3;
+					}
+					
+					// Define the $people who liked variable
+					$people = '';
+					foreach($array as $row2) {
+						$people .= '<a href="'.$this->url.'/index.php?a=profile&u='.$row2['username'].'"><img src="'.$this->url.'/thumb.php?src='.$row2['image'].'&w=25&h=25&t=a" title="'.realName($row2['username'], $row2['first_name'], $row2['last_name']).' '.$LNG['liked_this'].'" /></a> ';
+					}
+				}
+
+				if(!empty($row[3])){
+					$result .= '<div class="likebtn"><span class="like_btn" id="like_btn_pic'.$row[4].'"> '.$people.$row[3].'</span></div>';
+				}else{
+					$result .= '<div class="likebtn"><span class="like_btn"> '.$row[3].'</span></div>';
+				}
+
+				if(!empty($row[1])){
+					$tags = unserialize($row[1]);
+					$result .= '<br/>';
+					foreach($tags as $user){
+						$result .= '<a href="index.php?a=profile&u='.$user.'">'.$user.'</a><br/>';
+					}
+				}
+				
+				$result .= '<div style="width:100%,float:left;clear:both;">'; 
+
+				$result .= '
+				<div class="message-replies">						
+					<div class="message-replies-content" id="comments-list-pic'.$row[4].'">
+						'.$this->getCommentsPhoto($row[4], null, $this->c_start).'
+					</div>
+				</div>
+				';
+
+				$result .= '</div>';
+
+				$result .= '</div>';
+				$result .= '</td>';
+
+				$result .= '</tr>';
+			
+
+			$result .= '</table>';
+			$result .= '</div>';
+
+			return $result.'</div><div class="message-divider"></div>';
+
+		}
+		
+	}
 	
 	function getComments($id, $cid, $start) {
 		global $LNG;
@@ -2174,6 +2413,31 @@ class feed {
 				} else { // If the current username is not the same as the author
 					$delete = '<a onclick="report_the('.$comment['id'].', 0)" title="'.$LNG['report_this_comment'].'"><div class="report_btn"></div></a>';
 				}
+
+				//PEOPLE WHO LIKED PHOTO
+				if($this->l_per_post) {
+					$query2 = sprintf("SELECT * FROM `likes_comment`,`users` WHERE `post` = '%s' and `likes_comment`.`by` = `users`.`idu` ORDER BY `likes_comment`.`id` DESC LIMIT %s", $this->db->real_escape_string($comment['id']), $this->db->real_escape_string($this->l_per_post));
+					$array = array();
+					$result2 = $this->db->query($query2);
+					while($row3 = $result2->fetch_assoc()) {
+						$array[] = $row3;
+					}
+					
+					// Define the $people who liked variable
+					$people = '';
+					foreach($array as $row2) {
+						$people .= '<a href="'.$this->url.'/index.php?a=profile&u='.$row2['username'].'"><img src="'.$this->url.'/thumb.php?src='.$row2['image'].'&w=25&h=25&t=a" title="'.realName($row2['username'], $row2['first_name'], $row2['last_name']).' '.$LNG['liked_this'].'" /></a> ';
+					}
+				}
+
+				//IF PHOTO LIKED SET TYPE TO 2, ELSE SET TYPE TO 1
+				if($this->verifyLikeComment($comment['id'])){
+					$like_type = 2;
+					$like_str = "unlike";
+				}else{
+					$like_type = 1;
+					$like_str = "like";
+				}
 				
 				// Variable which contains the result
 				$comments .= '
@@ -2189,6 +2453,12 @@ class feed {
 								'.$time.'
 							</div>
 						</div>
+						<div class="dolike">
+							<a href="javascript:void(0)" id="doLikeComment'.$comment['id'].'" onclick="doLikeComment('.$comment['id'].', '.$like_type.')" style="float:left;">'.$like_str.'</a>
+						</div>
+						<div class="likebtn">
+							<span class="like_btn" id="like_btn_comm'.$comment['id'].'" style="float:left;">'.$people.$comment['likes'].'</span>
+						</div>
 					</div>
 					<div class="delete_preloader" id="del_comment_'.$comment['id'].'"></div>
 					
@@ -2197,6 +2467,126 @@ class feed {
 			}
 			if($loadmore) {
 				$load = '<div class="load-more-comments" id="more_comments_'.$id.'"><a onclick="loadComments('.$message_id.', '.$rows[1]['id'].', '.($start + $this->c_per_page).')">'.$LNG['view_more_comments'].'</a></div>';
+			}
+					
+			// Close the query
+			$result->close();
+			
+			// Return the comments variable
+			return $load.$comments;
+		} else {
+			return false;
+		}
+	}
+
+	function getCommentsPhoto($id, $cid, $start) {
+		global $LNG;
+		// The query to select the subscribed users
+		
+		// If the $start value is 0, empty the query;
+		if($start == 0) {
+			$start = '';
+		} else {
+			// Else, build up the query
+			$start = 'AND comments_photo.id < \''.$this->db->real_escape_string($cid).'\'';
+		}
+		$query = sprintf("SELECT * FROM comments_photo, users WHERE comments_photo.apid = '%s' AND comments_photo.uid = users.idu %s ORDER BY comments_photo.id DESC LIMIT %s", $this->db->real_escape_string($id), $start, ($this->c_per_page + 1));
+
+		// check if the query was executed
+		if($result = $this->db->query($query)) {
+			
+			// Set the result into an array
+			$rows = array();
+			while($row = $result->fetch_assoc()) {
+				$rows[] = $row;
+			}
+			$rows = array_reverse($rows);
+			
+			// Define the $comments variable;
+			$comments = '';
+			
+			// If there are more results available than the limit, then show the Load More Comments
+			if(array_key_exists($this->c_per_page, $rows)) {
+				$loadmore = 1;
+				
+				// Unset the first array element because it's not needed, it's used only to predict if the Load More Comments should be displayed
+				unset($rows[0]);
+			}
+			
+			foreach($rows as $comment) {
+				// Define the time selected in the Admin Panel
+				$time = $comment['time']; $b = '';
+				if($this->time == '0') {
+					$time = date("c", strtotime($comment['time']));
+				} elseif($this->time == '2') {
+					$time = $this->ago(strtotime($comment['time']));
+				} elseif($this->time == '3') {
+					$date = strtotime($comment['time']);
+					$time = date('Y-m-d', $date);
+					$b = '-standard';
+				}
+				
+				if($this->username == $comment['username']) { // If it's current username is the same with the current author
+					$delete = '<a onclick="delete_the_comment_photo('.$comment['id'].')" title="'.$LNG['delete_this_comment'].'"><div class="delete_btn"></div></a>';
+				} elseif(empty($this->username)) { // If the user is not registered
+					$delete = '';
+				} else { // If the current username is not the same as the author
+					$delete = '<a onclick="report_the_photo('.$comment['id'].', 0)" title="'.$LNG['report_this_comment'].'"><div class="report_btn"></div></a>';
+				}
+
+				//PEOPLE WHO LIKED PHOTO
+				if($this->l_per_post) {
+					$query2 = sprintf("SELECT * FROM `likes_comment_photo`,`users` WHERE `post` = '%s' and `likes_comment_photo`.`by` = `users`.`idu` ORDER BY `likes_comment_photo`.`id` DESC LIMIT %s", $this->db->real_escape_string($comment['id']), $this->db->real_escape_string($this->l_per_post));
+					$array = array();
+					$result2 = $this->db->query($query2);
+					while($row3 = $result2->fetch_assoc()) {
+						$array[] = $row3;
+					}
+					
+					// Define the $people who liked variable
+					$people = '';
+					foreach($array as $row2) {
+						$people .= '<a href="'.$this->url.'/index.php?a=profile&u='.$row2['username'].'"><img src="'.$this->url.'/thumb.php?src='.$row2['image'].'&w=25&h=25&t=a" title="'.realName($row2['username'], $row2['first_name'], $row2['last_name']).' '.$LNG['liked_this'].'" /></a> ';
+					}
+				}
+
+				//IF PHOTO LIKED SET TYPE TO 2, ELSE SET TYPE TO 1
+				if($this->verifyLikeCommentPhoto($comment['id'])){
+					$like_type = 2;
+					$like_str = "unlike";
+				}else{
+					$like_type = 1;
+					$like_str = "like";
+				}
+				
+				// Variable which contains the result
+				$comments .= '
+				<div class="message-reply-container" id="comment_photo'.$comment['id'].'">
+					'.$delete.'
+					<div class="message-reply-avatar">
+						<a href="'.$this->url.'/index.php?a=profile&u='.$comment['username'].'"><img onmouseover="profileCard('.$comment['idu'].', '.$comment['id'].', 1, 0)" onmouseout="profileCard(0, 0, 1, 1);" onclick="profileCard(0, 0, 1, 1);" src="'.$this->url.'/thumb.php?src='.$comment['image'].'&t=a" /></a>
+					</div>
+					<div class="message-reply-message">
+						<span class="message-reply-author"><a href="'.$this->url.'/index.php?a=profile&u='.$comment['username'].'">'.realName($comment['username'], $comment['first_name'], $comment['last_name']).'</a></span>: '.$this->parseMessage($comment['message']).'
+						<div class="message-time">
+							<div class="timeago'.$b.'" title="'.$time.'">
+								'.$time.'
+							</div>
+						</div>
+						<div class="dolikepic">
+							<a href="javascript:void(0)" id="doLikeCommentPhoto'.$comment['id'].'" onclick="doLikeCommentPhoto('.$comment['id'].', '.$like_type.')" style="float:left;">'.$like_str.'</a>
+						</div>
+						<div class="likebtnpic">
+							<span class="like_btn" id="like_btn_comm_pic'.$comment['id'].'" style="float:left;">'.$people.$comment['likes'].'</span>
+						</div>
+					</div>
+					<div class="delete_preloader" id="del_comment_pic'.$comment['id'].'"></div>
+					
+				</div>';
+				$message_id = $comment['apid'];
+			}
+			if($loadmore) {
+				$load = '<div class="load-more-comments" id="more_comments_pic'.$id.'"><a onclick="loadCommentsPhoto('.$message_id.', '.$rows[1]['id'].', '.($start + $this->c_per_page).')">'.$LNG['view_more_comments'].'</a></div>';
 			}
 					
 			// Close the query
@@ -2251,7 +2641,7 @@ class feed {
 	}
 
 	function get_album_photos($album_id){
-		$query = sprintf("SELECT a.value,a.tags,a.location,a.likes,a.id FROM album_photos a WHERE a.album_id=%d", $album_id);
+		$query = sprintf("SELECT a.value,a.tags,a.location,a.likes,a.id,a.uid FROM album_photos a WHERE a.album_id=%d", $album_id);
 
    		$result = $this->db->query($query);
 
@@ -2259,7 +2649,13 @@ class feed {
 
 	}
 
+	function get_album_photo($id){
+		$query = sprintf("SELECT a.value,a.tags,a.location,a.likes,a.id,a.uid FROM album_photos a WHERE a.id=%d", $id);
 
+   		$result = $this->db->query($query);
+
+   		return $result;
+	}
 	
 	function getType($type, $value, $id, $parent_id) {
 		global $LNG, $CONF;
@@ -2374,7 +2770,7 @@ class feed {
 					if($i == 0){
 						$result .= '<tr>';
 					}
-					$result .= '<td>';
+					$result .= '<td valign="top">';
 					$result .= '<div id="album_photo'.$row[4].'">';					
 					$result .= '<a onclick="gallery(\''.$row[0].'\', '.$id.', \'media\')" id="'.$row[0].'">';
 						$result .= '<div class="image-thumbnail-container">'; 
@@ -2405,7 +2801,7 @@ class feed {
 					}
 
 					if(!empty($row[3])){
-						$result .= '<div class="likebtn"><span class="like_btn"> '.$people.$row[3].'</span></div>';
+						$result .= '<div class="likebtn"><span class="like_btn" id="like_btn_pic'.$row[4].'"> '.$people.$row[3].'</span></div>';
 					}else{
 						$result .= '<div class="likebtn"><span class="like_btn"> '.$row[3].'</span></div>';
 					}
@@ -2418,8 +2814,35 @@ class feed {
 						}
 					}
 					$result .= '<div class="dolike"><a onclick="doLikePhoto('.$row[4].', '.$like_type.')" id="doLikePhoto'.$row[4].'" style="float:right;">'.$like_str.'</a></div>';
+
+
+
+					$result .= '<div id="photo_report'.$row[4].'"><a onclick="report_the_photo('.$row[4].', 1)" title="'.$LNG['report_this_photo'].'"><div class="report_btn"></div></a></div>';
+
 					
-					$result .= '<div style="width:100%,float:left;clear:both;">Comment</div>';
+					$result .= '<div style="width:100%,float:left;clear:both;">'; 
+
+					$result .= '
+					<div class="message-replies">						
+						<div class="message-replies-content" id="comments-list-pic'.$row['id'].'">
+							'.$this->getCommentsPhoto($row['id'], null, $this->c_start).'
+						</div>
+					</div>
+					<div class="message-comment-box-container" id="comment_box_pic_'.$row[4].'" style="overflow:visible;">
+						<div class="message-reply-avatar">
+							<a href="'.$this->url.'/index.php?a=profile&u='.$this->user['username'].'"><img src="'.$this->url.'/thumb.php?src='.$this->user['image'].'&t=a&w=50&h=50" /></a>
+						</div>
+						<div class="message-comment-box-form">
+							<textarea id="comment-form-pic'.$row[4].'" onclick="showButtonPic('.$row[4].')" placeholder="'.$LNG['leave_comment'].'" class="comment-reply-textarea"></textarea>
+						</div>
+						<div class="comment-btn" id="comment_btn_pic'.$row[4].'">
+							<a onclick="postCommentPicture('.$row[4].')">'.$LNG['post'].'</a>
+						</div>
+						<div class="delete_preloader" id="post_comment_pic'.$row[4].'"></div>
+					</div>
+					';
+
+					$result .= '</div>';
 
 					$result .= '</div>';
 					$result .= '</td>';
@@ -2524,6 +2947,21 @@ class feed {
 		
 		return ($affected) ? 1 : 0;
 	}
+
+	function delete_comment_photo($id){
+		$stmt = $this->db->prepare("DELETE FROM `comments_photo` WHERE `id` = '{$this->db->real_escape_string($id)}' AND `uid` = '{$this->db->real_escape_string($this->id)}'");
+
+		// Execute the statement
+		$stmt->execute();
+		
+		// Save the affected rows
+		$affected = $stmt->affected_rows;
+		
+		// Close the statement
+		$stmt->close();
+		
+		return ($affected) ? 1 : 0;
+	}
 	
 	function report($id, $type) {
 		global $LNG;
@@ -2555,6 +2993,54 @@ class feed {
 				}
 			} else {
 				$stmt = $this->db->prepare(sprintf("INSERT INTO `reports` (`post`, `parent`, `by`, `type`) VALUES ('%s', '%s', '%s', '%s')", $this->db->real_escape_string($id), ($parent['mid']) ? $parent['mid'] : 0, $this->db->real_escape_string($this->id), $this->db->real_escape_string($type)));
+
+				// Execute the statement
+				$stmt->execute();
+				
+				// Save the affected rows
+				$affected = $stmt->affected_rows;
+
+				// Close the statement
+				$stmt->close();
+				
+				// If the comment was added, return 1
+				return ($affected) ? $LNG["{$type}_report_added"] : $LNG["{$type}_report_error"];
+			}
+		} else {
+			return $LNG["{$type}_not_exists"];
+		}
+	}
+
+	function report_photo($id, $type) {
+		global $LNG;
+		// Check if the Message exists
+		if($type == 1) {
+			$result = $this->db->query(sprintf("SELECT `id` FROM `album_photos` WHERE `id` = '%s'", $this->db->real_escape_string($id)));
+		} else {
+			$result = $this->db->query(sprintf("SELECT `id`,`apid` FROM `comments_photo` WHERE `id` = '%s'", $this->db->real_escape_string($id)));
+			$parent = $result->fetch_array(MYSQLI_ASSOC); 
+		}
+		// If the Message/Comment exists
+		if($result->num_rows) {
+			$result->close();
+		
+			// Get the report status, 0 = already exists * 1 = is safe
+			$query = sprintf("SELECT `state` FROM `reports_photo` WHERE `post` = '%s' AND `type` = '%s'", $this->db->real_escape_string($id), $this->db->real_escape_string($type));
+			$result = $this->db->query($query);
+			$state = $result->fetch_assoc();
+			
+			//  If the report already exists
+			if($result->num_rows) {
+				// If the comment state is 0, then already exists
+				if($state['state'] == 0) {
+					return $LNG["{$type}_already_reported"];
+				} elseif($state['state'] == 1) {
+					return $LNG["{$type}_is_safe"];
+				} else {
+					return $LNG["{$type}_is_deleted"];
+				}
+			} else {
+				$stmt = $this->db->prepare(sprintf("INSERT INTO `reports_photo` (`post`, `parent`, `by`, `type`) VALUES ('%s', '%s', '%s', '%s')", $this->db->real_escape_string($id), ($parent['apid']) ? $parent['apid'] : 0, $this->db->real_escape_string($this->id), $this->db->real_escape_string($type)));
 
 				// Execute the statement
 				$stmt->execute();
@@ -2621,6 +3107,25 @@ class feed {
 			return 0;
 		}
 	}
+
+	function addCommentPhoto($id, $comment) {
+
+		// Add the insert message
+		$stmt = $this->db->prepare("INSERT INTO `comments_photo` (`uid`, `apid`, `message`) VALUES ('{$this->db->real_escape_string($this->id)}', '{$this->db->real_escape_string($id)}', '{$this->db->real_escape_string(htmlspecialchars($comment))}')");
+
+		// Execute the statement
+		$stmt->execute();
+		
+		// Save the affected rows
+		$affected = $stmt->affected_rows;
+
+		// Close the statement
+		$stmt->close();
+	
+		// If the comment was added, return 1
+		return ($affected) ? 1 : 0;
+
+	}
 	
 	function getLastComment() {
 		// Select the last comment from the logged-in user
@@ -2642,7 +3147,7 @@ class feed {
 				$date = strtotime($row['time']);
 				$time = date('Y-m-d', $date);
 				$b = '-standard';
-			}			
+			}		
 			
 			// Variable which contains the result
 			$comment = '
@@ -2658,8 +3163,67 @@ class feed {
 							'.$time.'
 						</div>
 					</div>
+					<div class="dolike">
+						<a href="javascript:void(0)" id="doLikeComment'.$row['id'].'" onclick="doLikeComment('.$row['id'].', 1)" style="float:left;">Like</a>
+					</div>
+					<div class="likebtn">
+						<span class="like_btn" id="like_btn_comm'.$row['id'].'" style="float:left;">0</span>
+					</div>
 				</div>
 				<div class="delete_preloader" id="del_comment_'.$row['id'].'"></div>
+				
+			</div>';
+			
+			return $comment;
+		} else {
+			return false;
+		}
+	}
+
+	function getLastCommentPhoto() {
+		// Select the last comment from the logged-in user
+		$query = sprintf("SELECT * FROM `comments_photo`, `users` WHERE `uid` = '%s' AND `comments_photo`.`uid` = `users`.`idu` ORDER BY `id` DESC LIMIT 0, 1", $this->db->real_escape_string($this->id));
+		
+		// If the select was made
+		if($result = $this->db->query($query)) {
+			
+			// Set the result into an array
+			$row = $result->fetch_assoc();
+
+			// Define the time selected in the Admin Panel
+			$time = $row['time']; $b = '';
+			if($this->time == '0') {
+				$time = date("c", strtotime($row['time']));
+			} elseif($this->time == '2') {
+				$time = $this->ago(strtotime($row['time']));
+			} elseif($this->time == '3') {
+				$date = strtotime($row['time']);
+				$time = date('Y-m-d', $date);
+				$b = '-standard';
+			}			
+			
+			// Variable which contains the result
+			$comment = '
+			<div class="message-reply-container" id="comment_photo'.$row['id'].'" style="display: none">
+				<a onclick="delete_the_comment_photo('.$row['id'].')"><div class="delete_btn"></div></a>
+				<div class="message-reply-avatar">
+					<a href="'.$this->url.'/index.php?a=profile&u='.$row['username'].'"><img src="'.$this->url.'/thumb.php?src='.$row['image'].'&t=a" /></a>
+				</div>
+				<div class="message-reply-message">
+					<span class="message-reply-author"><a href="'.$this->url.'/index.php?a=profile&u='.$row['username'].'">'.realName($row['username'], $row['first_name'], $row['last_name']).'</a></span>: '.$this->parseMessage($row['message']).'
+					<div class="message-time">
+						<div class="timeago'.$b.'" title="'.$time.'">
+							'.$time.'
+						</div>
+					</div>
+					<div class="dolikepic">
+						<a href="javascript:void(0)" id="doLikeCommentPhoto'.$row['id'].'" onclick="doLikeCommentPhoto('.$row['id'].', 1)" style="float:left;">Like</a>
+					</div>
+					<div class="likebtnpic">
+						<span class="like_btn" id="like_btn_comm_pic'.$row['id'].'" style="float:left;">0</span>
+					</div>
+				</div>
+				<div class="delete_preloader" id="del_comment_pic'.$row['id'].'"></div>
 				
 			</div>';
 			
@@ -3738,8 +4302,8 @@ class feed {
 		// Output variable
 		$action = array();
 
-		$actions['dolike'] = '<a onclick="doLikePhoto('.$id.', '.$y.')" id="doLike'.$id.'" style="float:right;">'.$state.'</a>';
-		$actions['likebtn'] = '<div class="like_btn" id="like_btn'.$id.'"> '.$people.$likes.'</div>';
+		$actions['dolike'] = '<a onclick="doLikePhoto('.$id.', '.$y.')" id="doLikePhoto'.$id.'" style="float:right;">'.$state.'</a>';
+		$actions['likebtn'] = '<div class="like_btn" id="like_btn_pic'.$id.'"> '.$people.$likes.'</div>';
 		
 		// If the current user is not empty
 		// if(empty($this->id)) {
@@ -3749,6 +4313,208 @@ class feed {
 		// if(isset($x)) {
 		// 	return $LNG["$x"].' <div class="like_btn"> '.$likes.'</div>';
 		// }
+		return json_encode($actions);
+	}
+	function verifyLikeComment($id){
+		$result = $this->db->query(sprintf("SELECT * FROM `likes_comment` WHERE `post` = '%s' AND `by` = '%s'", $this->db->real_escape_string($id), $this->db->real_escape_string($this->id)));
+	
+		// If the Message/Comment exists
+		return ($result->num_rows) ? 1 : 0;
+	}
+	function doLikeComment($id, $type = null){
+		global $LNG;
+
+		if($type == 1) {
+			$verify = $this->verifyLikeComment($id);
+
+			if(!$verify){
+				// Prepare the INSERT statement
+				$stmt = $this->db->prepare("INSERT INTO `likes_comment` (`post`, `by`) VALUES ('{$this->db->real_escape_string($id)}', '{$this->db->real_escape_string($this->id)}')");
+
+				// Execute the statement
+				$stmt->execute();
+				
+				// Save the affected rows
+				$affected = $stmt->affected_rows;
+
+				// Close the statement
+				$stmt->close();
+				if($affected) {
+					$this->db->query("UPDATE `comments` SET `likes` = `likes` + 1 WHERE id = '{$this->db->real_escape_string($id)}'");
+				}
+			}
+		}else if($type == 2){
+			// Verify the Like state
+			$verify = $this->verifyLikeComment($id);
+
+			if($verify) {
+				// Prepare the DELETE statement
+				$stmt = $this->db->prepare("DELETE FROM `likes_comment` WHERE `post` = '{$this->db->real_escape_string($id)}' AND `by` = '{$this->db->real_escape_string($this->id)}'");
+
+				// Execute the statement
+				$stmt->execute();
+				
+				// Save the affected rows
+				$affected = $stmt->affected_rows;
+
+				// Close the statement
+				$stmt->close();
+				if($affected) {
+					$this->db->query("UPDATE `comments` SET `likes` = `likes` - 1 WHERE id = '{$this->db->real_escape_string($id)}'");					
+				}
+			}
+			
+		}
+
+		// If likes is not defined
+		//if($likes == null) {
+			// Get the likes
+			$query = sprintf("SELECT `likes` FROM `comments` WHERE `id` = '%s'", $this->db->real_escape_string($id));
+			
+			// Run the query
+			$result = $this->db->query($query);
+			
+			// Get the array element for the like
+			$get = $result->fetch_row();
+			
+			// Set the likes value
+			$likes = $get[0];
+		//}
+		
+		// Verify the Like state
+		$verify = $this->verifyLikeComment($id);
+		
+		if($verify) {
+			//$state = $LNG['dislike'];
+			$state = 'unlike';
+			$y = 2;
+		} else {
+			$state = $LNG['like'];
+			$y = 1;
+		}
+
+		if($this->l_per_post) {
+			$query = sprintf("SELECT * FROM `likes_comment`,`users` WHERE `post` = '%s' and `likes_comment`.`by` = `users`.`idu` ORDER BY `likes_comment`.`id` DESC LIMIT %s", $this->db->real_escape_string($id), $this->db->real_escape_string($this->l_per_post));
+		
+			$result = $this->db->query($query);
+			while($row = $result->fetch_assoc()) {
+				$array[] = $row;
+			}
+			
+			// Define the $people who liked variable
+			$people = '';
+			foreach($array as $row) {
+				$people .= '<a href="'.$this->url.'/index.php?a=profile&u='.$row['username'].'"><img src="'.$this->url.'/thumb.php?src='.$row['image'].'&w=25&h=25&t=a" title="'.realName($row['username'], $row['first_name'], $row['last_name']).' '.$LNG['liked_this'].'" /></a> ';
+			}
+		}
+
+		// Output variable
+		$action = array();
+
+		$actions['dolike'] = '<a href="javascript:void(0)" onclick="doLikeComment('.$id.', '.$y.')" id="doLikeComment'.$id.'" style="float:left;">'.$state.'</a>';
+		$actions['likebtn'] = '<div class="like_btn" id="like_btn_comm'.$id.'" style="float:left;"> '.$people.$likes.'</div>';
+		
+		return json_encode($actions);
+	}
+	function verifyLikeCommentPhoto($id){
+		$result = $this->db->query(sprintf("SELECT * FROM `likes_comment_photo` WHERE `post` = '%s' AND `by` = '%s'", $this->db->real_escape_string($id), $this->db->real_escape_string($this->id)));
+	
+		// If the Message/Comment exists
+		return ($result->num_rows) ? 1 : 0;
+	}
+	function doLikeCommentPhoto($id, $type = null){
+		global $LNG;
+
+		if($type == 1) {
+			$verify = $this->verifyLikeCommentPhoto($id);
+
+			if(!$verify){
+				// Prepare the INSERT statement
+				$stmt = $this->db->prepare("INSERT INTO `likes_comment_photo` (`post`, `by`) VALUES ('{$this->db->real_escape_string($id)}', '{$this->db->real_escape_string($this->id)}')");
+
+				// Execute the statement
+				$stmt->execute();
+				
+				// Save the affected rows
+				$affected = $stmt->affected_rows;
+
+				// Close the statement
+				$stmt->close();
+				if($affected) {
+					$this->db->query("UPDATE `comments_photo` SET `likes` = `likes` + 1 WHERE id = '{$this->db->real_escape_string($id)}'");
+				}
+			}
+		}else if($type == 2){
+			// Verify the Like state
+			$verify = $this->verifyLikeCommentPhoto($id);
+
+			if($verify) {
+				// Prepare the DELETE statement
+				$stmt = $this->db->prepare("DELETE FROM `likes_comment_photo` WHERE `post` = '{$this->db->real_escape_string($id)}' AND `by` = '{$this->db->real_escape_string($this->id)}'");
+
+				// Execute the statement
+				$stmt->execute();
+				
+				// Save the affected rows
+				$affected = $stmt->affected_rows;
+
+				// Close the statement
+				$stmt->close();
+				if($affected) {
+					$this->db->query("UPDATE `comments_photo` SET `likes` = `likes` - 1 WHERE id = '{$this->db->real_escape_string($id)}'");					
+				}
+			}
+			
+		}
+
+		// If likes is not defined
+		//if($likes == null) {
+			// Get the likes
+			$query = sprintf("SELECT `likes` FROM `comments_photo` WHERE `id` = '%s'", $this->db->real_escape_string($id));
+			
+			// Run the query
+			$result = $this->db->query($query);
+			
+			// Get the array element for the like
+			$get = $result->fetch_row();
+			
+			// Set the likes value
+			$likes = $get[0];
+		//}
+		
+		// Verify the Like state
+		$verify = $this->verifyLikeCommentPhoto($id);
+		
+		if($verify) {
+			//$state = $LNG['dislike'];
+			$state = 'unlike';
+			$y = 2;
+		} else {
+			$state = $LNG['like'];
+			$y = 1;
+		}
+
+		if($this->l_per_post) {
+			$query = sprintf("SELECT * FROM `likes_comment_photo`,`users` WHERE `post` = '%s' and `likes_comment_photo`.`by` = `users`.`idu` ORDER BY `likes_comment_photo`.`id` DESC LIMIT %s", $this->db->real_escape_string($id), $this->db->real_escape_string($this->l_per_post));
+		
+			$result = $this->db->query($query);
+			while($row = $result->fetch_assoc()) {
+				$array[] = $row;
+			}
+			
+			// Define the $people who liked variable
+			$people = '';
+			foreach($array as $row) {
+				$people .= '<a href="'.$this->url.'/index.php?a=profile&u='.$row['username'].'"><img src="'.$this->url.'/thumb.php?src='.$row['image'].'&w=25&h=25&t=a" title="'.realName($row['username'], $row['first_name'], $row['last_name']).' '.$LNG['liked_this'].'" /></a> ';
+			}
+		}
+
+		// Output variable
+		$action = array();
+
+		$actions['dolike'] = '<a href="javascript:void(0)" onclick="doLikeCommentPhoto('.$id.', '.$y.')" id="doLikeCommentPhoto'.$id.'" style="float:left;">'.$state.'</a>';
+		$actions['likebtn'] = '<div class="like_btn" id="like_btn_comm_pic'.$id.'" style="float:left;"> '.$people.$likes.'</div>';
+		
 		return json_encode($actions);
 	}
 	function getActions($id, $likes = null, $type = null) {

@@ -15,7 +15,7 @@ $whitelist = array(
 );
 if(in_array($_SERVER['REMOTE_ADDR'], $whitelist)){
 	// localhost
-    $CONF['url'] = 'http://localhost/fbGit';
+    $CONF['url'] = 'http://fb.kill';
 }else{
 	$CONF['url'] = 'http://qrd.mijatovicivan.com';
 }
@@ -37,7 +37,8 @@ $action = array('admin'			=> 'admin',
 				'search'		=> 'search',
 				'page'			=> 'page',
 				'login-social'   => 'login-social',
-				'choose-username'   => 'choose-username'
+				'choose-username'   => 'choose-username',
+				'album_photo'   => 'album_photo'
 				);
 
 // mijat je faca

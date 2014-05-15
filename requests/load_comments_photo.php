@@ -38,6 +38,6 @@ if(!empty($_POST['id']) && !empty($_POST['start']) && !empty($_POST['cid'])) {
 	$feed->c_per_page = $settings['cperpage'];
 	$feed->l_per_post = $settings['lperpost'];
 	$feed->id = $verify['idu'];
-	echo $feed->getComments($_POST['id'], $_POST['cid'], $_POST['start']);
+	echo $feed->getCommentsPhoto($_POST['id'], $_POST['cid'], $_POST['start']);
 }
 ?>

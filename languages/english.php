@@ -118,6 +118,7 @@ $LNG['this_post_public'] = 'This message is public';
 $LNG['delete_this_comment'] = 'Delete this comment';
 $LNG['delete_this_message'] = 'Delete this message';
 $LNG['report_this_message'] = 'Report this message';
+$LNG['report_this_photo'] = 'Report this photo';
 $LNG['report_this_comment'] = 'Report this comment';
 $LNG['view_more_messages'] = 'Load More';
 $LNG['food'] = 'I ate at: <strong>%s</strong>';
