@@ -1,0 +1,28 @@
+<div class="page-inner"><div class="page-title">{$lng->user_desc_security}</div></div>
+{$message}
+
+
+<div class="message-divider"></div>
+ 
+
+<div class="page-inner">
+	<div class="page-input-container">
+		<form action="{$url}/index.php?a=settings&b=change_username" method="post">
+		<div class="page-input-title">Username</div>
+		<div class="page-input-content">
+			<input type="text" name="username"  value="{$username}"/>
+			<div class="page-input-sub">Change your username</div> 
+		</div>
+	</div>
+</div>
+
+
+<div class="message-divider"></div>
+<div class="page-inner">
+	<div class="page-input-title"></div>
+	<div class="page-input-content">
+		<input type="submit" value="{$lng->save_changes}" />
+	</div>
+	</form>
+</div>
+

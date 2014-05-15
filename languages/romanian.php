@@ -33,7 +33,7 @@ $LNG['welcome_desc'] = 'în rețeaua noastră de socializare';
 $LNG['welcome_about'] = 'împarte-ți aminitirile, conectează-te cu alții, fă-ți prieteni noi.';
 $LNG['forgot_password'] = 'Ați uitat parola?';
 $LNG['all_rights_reserved'] = 'Toate drepturile rezervate';
-
+$LNG['user_ttl_change_username'] = 'Username Settings';
 // NOTIFICATION BOXES //
 $LNG['settings_saved'] = 'Setari salvate';
 $LNG['nothing_saved'] = 'Nimic salvat';

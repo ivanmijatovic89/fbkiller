@@ -33,7 +33,7 @@ $LNG['welcome_desc'] = 'op ons sociale netwerk';
 $LNG['welcome_about'] = 'deel je herinneringen, contact met anderen, maak nieuwe vrienden.';
 $LNG['forgot_password'] = 'Wachtwoord vergeten?';
 $LNG['all_rights_reserved'] = 'Alle rechten voorbehouden';
-
+$LNG['user_ttl_change_username'] = 'Username Settings';
 // NOTIFICATION BOXES //
 $LNG['settings_saved'] = 'Instellingen opgeslagen';
 $LNG['nothing_saved'] = 'Niets opgeslagen';

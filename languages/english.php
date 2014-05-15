@@ -233,6 +233,7 @@ $LNG['user_ttl_general'] = 'General Settings';
 $LNG['user_ttl_security'] = 'Password Settings';
 $LNG['user_ttl_avatar'] = 'Profile Settings';
 $LNG['user_ttl_notifications'] = 'Notifications Settings';
+$LNG['user_ttl_change_username'] = 'Username Settings';
 
 $LNG['user_desc_general'] = 'Change account, privacy, location settings.';
 $LNG['user_desc_security'] = 'Change your password.';

@@ -21,11 +21,44 @@ function PageMain() {
 					// Unset the verified value if exist, by unsetting it here and not in the class, I'm allowing the Admin to change this value
 					unset($_POST['verified']);
 					$TMPL['message'] = $updateUserSettings->query_array('users', $_POST);
+
 				}
 
 				$userSettings = $updateUserSettings->getSettings();
 
 				$page .= $skin->make();
+			} elseif($_GET['b'] == 'change_username') {
+				$id = $verify['idu'];
+				$skin = new skin('settings/change_username'); $page = '';
+				if (isset($_POST['username']) AND (!empty($_POST['username'])) ) {
+					echo $_POST['username'];
+					$username = $_POST['username'];
+					$query = sprintf("SELECT * FROM `users` WHERE `username` = '%s' ", $db->real_escape_string($username));
+					$result = $db->query($query);
+					$count =    ($result->num_rows == 0) ? 0 : $result->num_rows;  
+					$query_deactivated = sprintf("SELECT * FROM `users_deactivated` WHERE `username` = '%s' ", $db->real_escape_string($username));
+					$result_deactivated = $db->query($query_deactivated);
+					$count_deactivated =    ($result_deactivated->num_rows == 0) ? 0 : $result_deactivated->num_rows;  
+					if(($count==0) AND ($count_deactivated ==0) ){
+
+						if($db->query("UPDATE `users` SET `username` = '{$username}' WHERE `idu` = '{$id}' ")){
+									//echo ' uspesno ste update username ';
+								$_SESSION['username'] = $username; // username
+						       
+						        
+						        $TMPL['message'] =   notificationBox('success', 'super', 'poruka'); 
+						       //header("Location: ".$CONF['url']."/index.php?a=settings&b=change_username");
+								  
+							}
+					}else{
+						$TMPL['message'] =   notificationBox('error', 'Error : ', 'Username already exists !'); 
+					}
+				}else{					
+					$TMPL['message'] =   notificationBox('error', 'Error : ', 'You must type username !'); 
+				}
+				$TMPL['username'] = $_SESSION['username'];
+				$page .= $skin->make();
+
 			} elseif($_GET['b'] == 'deactivate') {
 
 
@@ -301,7 +334,16 @@ function PageMain() {
 				$TMPL['days']   = generateDateForm(2, $date[2]);
 
 				$TMPL['currentUsername'] = $userSettings['username'];
-				$TMPL['currentFirstName'] = $userSettings['first_name']; $TMPL['currentLastName'] = $userSettings['last_name']; $TMPL['currentEmail'] = $userSettings['email']; $TMPL['currentLocation'] = $userSettings['location']; $TMPL['currentWebsite'] = $userSettings['website']; $TMPL['currentBio'] = $userSettings['bio']; $TMPL['currentFacebook'] = $userSettings['facebook'];$TMPL['currentLinkedin'] = $userSettings['linkedin']; $TMPL['currentTwitter'] = $userSettings['twitter'];
+
+				$TMPL['currentFirstName'] = $userSettings['first_name'];
+				$TMPL['currentLastName'] = $userSettings['last_name']; 
+				$TMPL['currentEmail'] = $userSettings['email']; 
+				$TMPL['currentLocation'] = $userSettings['location'];
+				$TMPL['currentWebsite'] = $userSettings['website']; 
+				$TMPL['currentBio'] = $userSettings['bio']; 
+				$TMPL['currentFacebook'] = $userSettings['facebook'];
+				$TMPL['currentLinkedin'] = $userSettings['linkedin']; 
+				$TMPL['currentTwitter'] = $userSettings['twitter'];
 				$TMPL['currentGplus'] = $userSettings['gplus'];
 				$TMPL['currentFitness'] = $userSettings['fitness'];
 
@@ -373,6 +415,7 @@ function PageMain() {
 	<a href="'.$CONF['url'].'/index.php?a=settings">'.$LNG['user_menu_general'].'</a>
 	<a href="'.$CONF['url'].'/index.php?a=settings&b=avatar">'.$LNG['user_menu_avatar'].'</a>
 	<a href="'.$CONF['url'].'/index.php?a=settings&b=notifications">'.$LNG['user_menu_notifications'].'</a>
+	<a href="'.$CONF['url'].'/index.php?a=settings&b=change_username">Change Username</a>
 	<a href="'.$CONF['url'].'/index.php?a=settings&b=security"> Deactivate acc / '.$LNG['user_menu_security'].'</a>';
 
 	$TMPL['image'] = '<img src="'.$CONF['url'].'/thumb.php?src='.$verify['image'].'&t=a" width="80" height="80" />';
